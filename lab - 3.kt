@@ -2,6 +2,19 @@ package huc
 
 import kotlin.math.*
 
+fun getDirectionName(direction: DoubleArray): String {
+    return when {
+        direction.contentEquals(directions[0]) -> "Вправо"
+        direction.contentEquals(directions[1]) -> "Влево"
+        direction.contentEquals(directions[2]) -> "Вверх"
+        direction.contentEquals(directions[3]) -> "Вниз"
+        direction.contentEquals(directions[4]) -> "Вправо-вверх"
+        direction.contentEquals(directions[5]) -> "Вправо-вниз"
+        direction.contentEquals(directions[6]) -> "Влево-вверх"
+        direction.contentEquals(directions[7]) -> "Влево-вниз"
+        else -> "Неизвестное направление"
+    }
+}
 // Определяем 8 направлений (можно адаптировать под свои нужды)
 val directions = arrayOf(
     doubleArrayOf(1.0, 0.0),   // Вправо
@@ -32,7 +45,8 @@ fun hookeJeeves8Directions(
         iterations++
 
         // 1. Исследующий поиск в 8 направлениях
-        val exploratoryPoint = explore8Directions(currentPoint, currentStepSize, objectiveFunction)
+        val (exploratoryPoint, bestDirection) = explore8DirectionsWithLog(currentPoint, currentStepSize, objectiveFunction)
+
 
         // 2. Движение по образцу
         if (objectiveFunction(exploratoryPoint) < objectiveFunction(bestPoint)) {
@@ -41,6 +55,8 @@ fun hookeJeeves8Directions(
             }
             bestPoint = exploratoryPoint.copyOf()
             currentPoint = newPoint.copyOf()
+            println("Итерация $iterations: Движение в направлении: ${getDirectionName(bestDirection!!)}")
+
         } else {
             // 3. Уменьшение шага
             currentStepSize *= alpha
@@ -53,16 +69,19 @@ fun hookeJeeves8Directions(
 }
 
 // Исследующий поиск в 8 направлениях
-fun explore8Directions(
+fun explore8DirectionsWithLog(
     point: DoubleArray,
     stepSize: Double,
     objectiveFunction: (DoubleArray) -> Double
-): DoubleArray {
+): Pair<DoubleArray, DoubleArray?> { // Возвращаем также направление
 
     var bestPoint = point.copyOf()
     var bestValue = objectiveFunction(point)
+    var bestDirection: DoubleArray? = null // Добавляем переменную для хранения лучшего направления
 
-    for (direction in directions) {
+    for (directionIndex in directions.indices) {
+        val direction = directions[directionIndex]
+
         // Нормализуем направление (чтобы длина вектора была равна 1)
         val norm = sqrt(direction[0] * direction[0] + direction[1] * direction[1])
         val normalizedDirection = doubleArrayOf(direction[0] / norm, direction[1] / norm)
@@ -76,10 +95,11 @@ fun explore8Directions(
         if (newValue < bestValue) {
             bestValue = newValue
             bestPoint = newPoint.copyOf()
+            bestDirection = direction.copyOf() // Запоминаем направление
         }
     }
 
-    return bestPoint
+    return Pair(bestPoint, bestDirection) // Возвращаем и точку, и направление
 }
 
 fun main() {
@@ -92,7 +112,7 @@ fun main() {
     val startPoint = doubleArrayOf(0.5, -0.5) // Пример начальной точки
     val stepSize = 0.01
     val alpha = 0.1
-    val epsilon = 1e-8
+    val epsilon = 1e-6
     val maxIterations = 10000
 
     val (bestSolution) = hookeJeeves8Directions(startPoint, stepSize, alpha, epsilon, maxIterations, objectiveFunction)
